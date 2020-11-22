@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.kakaopay.mapper.TransPayMapper">
+
+	
+
+	<insert id="insertTransFirst"
+		parameterType="kr.co.kakaopay.domain.TransPayDao">
+		INSERT INTO TRANS_PAY
+		VALUES( #{deal_ymd} , #{token} ,
+		#{user_id} , #{room_id} , #{seq} , #{user_id}
+		, NOW() , #{user_id} ,
+		NOW() , #{rcv_id} , #{rcv_money} , #{rcv_yn} )
+
+	</insert>
+
+	<select id="selectCheckAlreadyRecieve" parameterType="String"
+		resultType="int">
+		SELECT COUNT(*) CNT
+		FROM TRANS_PAY
+		WHERE DEAL_YMD BETWEEN
+		DATE_SUB(
+		STR_TO_DATE(CONCAT( CONCAT( CONCAT( CONCAT(
+		SUBSTR(#{deal_ymd},1,4)
+		,'-' ) , SUBSTR(#{deal_ymd},5,2) ) , '-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) ,
+		'%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND TOKEN = #{token}
+		AND
+		RCV_YN = 'Y'
+		AND RCV_ID = #{user_id}
+	</select>
+
+	<update id="updateTransRecieve"
+		parameterType="kr.co.kakaopay.domain.TransPayDao">
+
+		UPDATE TRANS_PAY
+		SET MODI_ID = #{user_id}
+		,MODI_DT = NOW()
+		,RCV_ID = #{user_id}
+		,RCV_YN = 'Y'
+		WHERE DEAL_YMD IN ( SELECT DEAL_YMD
+		FROM MASTER_PAY
+		WHERE DEAL_YMD BETWEEN DATE_SUB( STR_TO_DATE(CONCAT(
+		CONCAT( CONCAT(
+		CONCAT( SUBSTR(#{deal_ymd},1,4) ,'-' ) ,
+		SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) , SUBSTR(#{deal_ymd},7,2)) ,
+		'%Y-%m-%d') , INTERVAL 7 DAY )
+		AND #{deal_ymd}
+		)
+		AND TOKEN = #{token}
+		AND
+		ROOM_ID = #{room_id}
+		AND SEQ = ( SELECT MAX(SEQ)
+		FROM TRANS_PAY
+		WHERE
+		DEAL_YMD BETWEEN DATE_SUB( STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT(
+		SUBSTR(#{deal_ymd},1,4) ,'-' ) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) , '%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND RCV_ID IS NULL
+		AND RCV_YN = 'N'
+		)
+
+	</update>
+
+	<select id="selectRecieveMoney" parameterType="String"
+		resultType="int">
+		SELECT RCV_MONEY
+		FROM TRANS_PAY
+		WHERE DEAL_YMD BETWEEN
+		DATE_SUB( STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT(
+		SUBSTR(#{deal_ymd},1,4) ,'-' ) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) , '%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND TOKEN = #{token}
+		AND RCV_YN = 'Y'
+		AND RCV_ID = #{user_id}
+	</select>
+
+	<select id="queryOwnerTrans" parameterType="String"
+		resultType="kr.co.kakaopay.domain.TransPayDao">
+		SELECT  RCV_MONEY , RCV_ID
+		FROM TRANS_PAY
+		WHERE DEAL_YMD
+		BETWEEN
+		DATE_SUB( STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT(
+		SUBSTR(#{deal_ymd},1,4) ,'-' ) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) , '%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND TOKEN = #{token}
+		AND RCV_YN = 'Y'
+	</select>
+
+</mapper>

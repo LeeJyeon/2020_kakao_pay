@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.kakaopay.mapper.MasterPayMapper">
+	<resultMap type="kr.co.kakaopay.domain.MasterPayDao" id="dao">
+		<result property="deal_ymd" column="deal_ymd" />
+		<result property="token" column="token" />
+		<result property="snd_id" column="snd_id" />
+		<result property="room_id" column="room_id" />
+		<result property="regi_dt" column="regi_dt" />
+		<result property="regi_dt_10_min" column="regi_dt_10_min" />
+		<result property="regi_time" column="regi_time" />
+		<result property="total_money" column="total_money" />
+		<result property="rcv_money" column="rcv_money" />
+	</resultMap>
+
+
+
+	<select id="selectVerifyToken" parameterType="String"
+		resultType="int">
+		SELECT COUNT(*) CNT
+		FROM MASTER_PAY
+		WHERE TOKEN = #{token}
+		AND DEAL_YMD BETWEEN DATE_SUB( STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT( SUBSTR(#{deal_ymd},1,4) ,'-' ) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) , SUBSTR(#{deal_ymd},7,2)) , '%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+	</select>
+
+	<insert id="insertMasterFirst"
+		parameterType="kr.co.kakaopay.domain.MasterPayDao">
+		INSERT INTO MASTER_PAY
+		VALUES( #{deal_ymd} , #{token} ,
+		#{user_id} , #{room_id} , #{user_id} , NOW() ,
+		#{user_id} , NOW() ,
+		#{total_money} , 0 , #{people_num} )
+	</insert>
+
+		
+	<select id="selectRecieveCheck" parameterType="String"
+		resultMap="dao">
+		SELECT DEAL_YMD
+		, TOKEN
+		, SND_ID
+		, ROOM_ID
+		, REGI_DT
+		, DATE_ADD(
+		REGI_DT , INTERVAL 10 MINUTE ) AS REGI_DT_10_MIN,
+		TOTAL_MONEY,
+		RCV_MONEY,
+		date_format(regi_dt, '%H:%m:%s') REGI_TIME
+		FROM MASTER_PAY
+		WHERE
+		DEAL_YMD BETWEEN DATE_SUB( STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT(
+		SUBSTR(#{deal_ymd},1,4) ,'-' ) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) , '%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND TOKEN = #{token}
+	</select>
+
+	<update id="updateMasterPay"
+		parameterType="kr.co.kakaopay.domain.MasterPayDao">
+		UPDATE MASTER_PAY
+		SET MODI_ID = #{user_id}
+		,MODI_DT =
+		NOW()
+		,RCV_MONEY = ( SELECT RCV_MONEY
+		FROM MASTER_PAY
+		WHERE DEAL_YMD
+		BETWEEN DATE_SUB( STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT(
+		SUBSTR(#{deal_ymd},1,4) ,'-' ) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) , '%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND TOKEN = #{token}
+		) + #{rcv_money}
+		WHERE DEAL_YMD BETWEEN
+		DATE_SUB( STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT(
+		SUBSTR(#{deal_ymd},1,4) ,'-' ) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) , '%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND TOKEN = #{token}
+
+	</update>
+
+	
+
+	<select id="queryOwnerMaster" parameterType="String"
+		resultMap="dao">
+		SELECT 
+		DEAL_YMD
+		, TOKEN
+		, SND_ID
+		, ROOM_ID
+		, REGI_DT
+		, DATE_ADD(
+		REGI_DT , INTERVAL 10 MINUTE ) AS REGI_DT_10_MIN,
+		date_format(regi_dt, '%H:%m:%s') REGI_TIME ,
+		TOTAL_MONEY , RCV_MONEY
+		FROM MASTER_PAY
+		WHERE DEAL_YMD BETWEEN
+		DATE_SUB(
+		STR_TO_DATE(CONCAT( CONCAT( CONCAT(
+		CONCAT(
+		SUBSTR(#{deal_ymd},1,4) ,'-'
+		) , SUBSTR(#{deal_ymd},5,2) ) ,
+		'-' ) ,
+		SUBSTR(#{deal_ymd},7,2)) ,
+		'%Y-%m-%d') , INTERVAL 7 DAY )
+		AND
+		#{deal_ymd}
+		AND #{deal_ymd}
+		AND TOKEN =
+		#{token}
+	</select>
+
+</mapper>
